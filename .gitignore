@@ -1,0 +1,39 @@
+# ===== Unity generated =====
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+UserSettings/
+MemoryCaptures/
+sysinfo.txt
+
+# ===== Addressables =====
+ServerData/
+
+# ===== Rider / VS / VSCode =====
+.vs/
+.idea/
+.vscode/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+
+# ===== OS files =====
+.DS_Store
+Thumbs.db
+
+# ===== Crash reports =====
+crashlytics-build.properties
+
+# ===== Gradle (nếu có Android) =====
+.gradle/
+
+# ===== JetBrains =====
+*.DotSettings.user

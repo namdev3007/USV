@@ -1,0 +1,9 @@
+﻿<Solution>
+  <Project Path="VFolders.csproj" />
+  <Project Path="Crest.csproj" />
+  <Project Path="VHierarchy.csproj" />
+  <Project Path="Crest.Examples.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Crest.Helpers.Editor.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+</Solution>
