@@ -1,31 +1,20 @@
 ﻿using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
-public class USVEngine : MonoBehaviour
+public class USVEngine : MonoBehaviour, IShutdownable
 {
     [System.Serializable]
     public class Engine
     {
         public string name;
-
-        [Header("State")]
         public bool isOn = true;
-        public bool startOnThrottle = true;
-
-        [Header("RPM")]
         public float minRPM = 800f;
         public float maxRPM = 5000f;
         public float spinUpTime = 0.4f;
-
-        [Header("Power")]
         public float maxThrust = 4000f;
         public float reverseCoefficient = 0.5f;
         public float maxSpeed = 10f;
-
-        public AnimationCurve thrustCurve =
-            AnimationCurve.EaseInOut(0, 0, 1, 1);
-
-        [Header("Transforms")]
+        public AnimationCurve thrustCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
         public Transform thrustPoint;
         public Transform propeller;
         public float propellerRpmRatio = 0.1f;
@@ -39,11 +28,9 @@ public class USVEngine : MonoBehaviour
     public Engine rightEngine;
 
     [Header("General")]
-    public float engineResponse = 2f;
-    public float waterAngularDrag = 2f;
+    public float waterAngularDamping = 2f;
 
     [Header("Debug")]
-    public bool enableDebugLogs = true;
     public bool drawThrustGizmos = true;
 
     private Rigidbody _rb;
@@ -51,15 +38,14 @@ public class USVEngine : MonoBehaviour
     private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
-        _rb.angularDamping = waterAngularDrag;
+        _rb.angularDamping = waterAngularDamping;
     }
+
     private void Update()
     {
-        float throttle = Input.GetAxis("Vertical");   // W/S
-        float steer = Input.GetAxis("Horizontal"); // A/D
+        float throttle = -Input.GetAxis("Vertical");
+        float steer = Input.GetAxis("Horizontal");
 
-
-        // Đảo chiều trái/phải nếu đang bị ngược
         steer *= -1f;
 
         leftEngine.throttleInput = Mathf.Clamp(throttle + steer, -1f, 1f);
@@ -72,71 +58,65 @@ public class USVEngine : MonoBehaviour
         UpdateEngine(rightEngine);
     }
 
-    void UpdateEngine(Engine engine)
+    private void UpdateEngine(Engine engine)
     {
-        if (!engine.isOn || engine.thrustPoint == null)
-            return;
+        if (!engine.isOn) return;
+        if (engine.thrustPoint == null) return;
 
         float speed = _rb.linearVelocity.magnitude;
+        if (speed > engine.maxSpeed) return;
 
-        if (speed > engine.maxSpeed)
-        {
-            if (enableDebugLogs)
-                Debug.Log($"{engine.name} reached max speed limit.");
-            return;
-        }
+        float targetRPM = Mathf.Lerp(engine.minRPM, engine.maxRPM, Mathf.Abs(engine.throttleInput));
 
-        float targetRPM = Mathf.Lerp(engine.minRPM,
-                                     engine.maxRPM,
-                                     Mathf.Abs(engine.throttleInput));
+        engine.currentRPM = Mathf.Lerp(
+            engine.currentRPM,
+            targetRPM,
+            Time.fixedDeltaTime * (1f / engine.spinUpTime)
+        );
 
-        engine.currentRPM = Mathf.Lerp(engine.currentRPM,
-                                       targetRPM,
-                                       Time.fixedDeltaTime * (1f / engine.spinUpTime));
-
-        float normalizedRPM = Mathf.InverseLerp(engine.minRPM,
-                                                engine.maxRPM,
-                                                engine.currentRPM);
-
+        float normalizedRPM = Mathf.InverseLerp(engine.minRPM, engine.maxRPM, engine.currentRPM);
         float thrustFactor = engine.thrustCurve.Evaluate(normalizedRPM);
 
         float thrust = thrustFactor * engine.maxThrust;
-
-        if (engine.throttleInput < 0)
+        if (engine.throttleInput < 0f)
             thrust *= engine.reverseCoefficient;
 
         engine.currentThrust = thrust * Mathf.Sign(engine.throttleInput);
 
         Vector3 force = engine.thrustPoint.forward * engine.currentThrust;
-
-        _rb.AddForceAtPosition(force,
-                               engine.thrustPoint.position,
-                               ForceMode.Force);
+        _rb.AddForceAtPosition(force, engine.thrustPoint.position, ForceMode.Force);
 
         if (drawThrustGizmos)
         {
-            Debug.DrawRay(engine.thrustPoint.position,
-                          force * 0.0005f,
-                          engine == leftEngine ? Color.blue : Color.red);
-        }
-
-        if (enableDebugLogs && Mathf.Abs(engine.throttleInput) > 0.01f)
-        {
-            Debug.Log(
-                $"{engine.name} | Throttle: {engine.throttleInput:F2} | RPM: {engine.currentRPM:F0} | Thrust: {engine.currentThrust:F0}");
+            Debug.DrawRay(
+                engine.thrustPoint.position,
+                force * 0.0005f,
+                engine == leftEngine ? Color.blue : Color.red
+            );
         }
 
         UpdatePropeller(engine);
     }
 
-    void UpdatePropeller(Engine engine)
+    private void UpdatePropeller(Engine engine)
     {
         if (engine.propeller == null) return;
 
-        float rotationSpeed = engine.currentRPM *
-                              engine.propellerRpmRatio *
-                              Time.deltaTime;
-
+        float rotationSpeed = engine.currentRPM * engine.propellerRpmRatio * Time.deltaTime;
         engine.propeller.Rotate(Vector3.forward * rotationSpeed);
+    }
+
+    public void Shutdown()
+    {
+        leftEngine.throttleInput = 0f;
+        rightEngine.throttleInput = 0f;
+
+        leftEngine.currentThrust = 0f;
+        rightEngine.currentThrust = 0f;
+
+        leftEngine.currentRPM = 0f;
+        rightEngine.currentRPM = 0f;
+
+        enabled = false;
     }
 }
