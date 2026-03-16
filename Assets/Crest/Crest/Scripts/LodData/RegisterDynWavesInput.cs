@@ -1,22 +1,14 @@
-﻿// Crest Ocean System
-
-// Copyright 2020 Wave Harmonic Ltd
-
+﻿
 using UnityEngine;
 
 namespace Crest
 {
-    /// <summary>
-    /// Registers a custom input to the dynamic wave simulation. Attach this GameObjects that you want to influence the sim to add ripples etc.
-    /// </summary>
+
     [AddComponentMenu(MENU_PREFIX + "Dynamic Waves Input")]
     [HelpURL(Internal.Constants.HELP_URL_BASE_USER + "waves.html" + Internal.Constants.HELP_URL_RP + "#dynamic-waves")]
     public class RegisterDynWavesInput : RegisterLodDataInput<LodDataMgrDynWaves>
     {
-        /// <summary>
-        /// The version of this asset. Can be used to migrate across versions. This value should
-        /// only be changed when the editor upgrades the version.
-        /// </summary>
+ 
         [SerializeField, HideInInspector]
 #pragma warning disable 414
         int _version = 0;

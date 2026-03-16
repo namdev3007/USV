@@ -1,10 +1,10 @@
 ﻿<Solution>
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="VFolders.csproj" />
   <Project Path="NWH.DWP2.csproj" />
   <Project Path="Crest.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
-  <Project Path="VHierarchy.csproj" />
   <Project Path="NWH.Common.csproj" />
+  <Project Path="VHierarchy.csproj" />
   <Project Path="Crest.Examples.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Crest.Helpers.Editor.csproj" />
