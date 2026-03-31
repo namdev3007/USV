@@ -291,7 +291,7 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
         float thrust = thrustFactor * engine.maxThrust;
 
-        if (engine.throttleInput < 0f)
+        if (engine.throttleInput > 0f)
             thrust *= engine.reverseCoefficient;
 
         thrust *= speedEfficiency;
@@ -337,8 +337,17 @@ public class USVEngine : MonoBehaviour, IShutdownable
             visualRPM *= 1.1f;
         }
 
-        float rotationSpeed = visualRPM * engine.propellerRpmRatio * Time.deltaTime;
-        engine.propeller.Rotate(Vector3.forward * rotationSpeed, Space.Self);
+        float direction = 0f;
+        if (Mathf.Abs(engine.throttleInput) > 0.001f)
+        {
+            // đảo chiều tiến/lùi cho visual propeller
+            direction = -Mathf.Sign(engine.throttleInput);
+        }
+
+        float rotationSpeed = visualRPM * engine.propellerRpmRatio * direction * Time.deltaTime;
+
+        // quay theo trục X thay vì Z
+        engine.propeller.Rotate(Vector3.right * rotationSpeed, Space.Self);
     }
 
     public WaveRelativeHeading GetWaveRelativeHeading()
