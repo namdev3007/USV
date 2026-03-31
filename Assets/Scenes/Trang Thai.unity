@@ -590,7 +590,7 @@ PrefabInstance:
       objectReference: {fileID: 410087040}
     - target: {fileID: 4664305549064611930, guid: 4a5ae9134a9b53445ad907a7f77140c2, type: 3}
       propertyPath: _globalWindSpeed
-      value: 2.3
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 5038118007630459484, guid: 4a5ae9134a9b53445ad907a7f77140c2, type: 3}
       propertyPath: m_LocalPosition.x

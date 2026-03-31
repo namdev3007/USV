@@ -11,7 +11,6 @@ public class ShipCollisionDetector : MonoBehaviour
     {
         if (collision.collider.CompareTag(targetTag))
         {
-            Debug.Log("Ship hit detected");
             OnShipHit?.Invoke(collision.collider);
         }
     }

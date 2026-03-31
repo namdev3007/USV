@@ -6,7 +6,19 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/MainScene.unity
+    path: Assets/Scenes/Main Menu.unity
+    guid: dd2ebf41b20c2f14b97d250aaf9f6b7a
+  - enabled: 1
+    path: Assets/Scenes/LoadingScene.unity
+    guid: ce175a2a7e96c4149bf3a3de2b7acf21
+  - enabled: 1
+    path: Assets/Scenes/Trang Thai.unity
+    guid: b123f84daf4d09743b5888eef21a970d
+  - enabled: 1
+    path: Assets/Scenes/Map 1.unity
+    guid: 5827eea63d81bdb49bfa5f9544a0944d
+  - enabled: 1
+    path: Assets/Scenes/Map 1.unity
     guid: 99c9720ab356a0642a771bea13969a05
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
