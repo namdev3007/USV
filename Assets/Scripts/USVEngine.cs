@@ -7,10 +7,10 @@ public class USVEngine : MonoBehaviour, IShutdownable
 {
     public enum WaveRelativeHeading
     {
-        FollowingSea,   // thuận sóng
-        HeadSea,        // ngược sóng
-        BeamSea,        // vuông góc sóng
-        QuarteringSea   // chéo sóng
+        FollowingSea,
+        HeadSea,
+        BeamSea,
+        QuarteringSea
     }
 
     [System.Serializable]
@@ -40,7 +40,7 @@ public class USVEngine : MonoBehaviour, IShutdownable
         [Range(0f, 1f)] public float ventilationMinFactor = 0f;
 
         [HideInInspector] public float currentRPM;
-        [HideInInspector] public float throttleInput;
+        [HideInInspector] public float throttleInput; // âm = tiến, dương = lùi
         [HideInInspector] public float currentThrust;
 
         [HideInInspector] public float waterHeight;
@@ -56,24 +56,33 @@ public class USVEngine : MonoBehaviour, IShutdownable
     public Engine rightEngine;
 
     [Header("General")]
-    public float waterAngularDamping = 2f;
+    public float waterAngularDamping = 1.0f;
     public float minSpatialLength = 1.5f;
+
+    [Header("Helm / Steering")]
+    [Tooltip("Độ lệch lực khi đang tiến.")]
+    [Range(0f, 1f)] public float forwardSteerStrength = 0.75f;
+
+    [Tooltip("Độ lệch lực khi đang lùi.")]
+    [Range(0f, 1f)] public float reverseSteerStrength = 0.45f;
+
+    [Tooltip("Lực tiến khi chỉ bấm A/D.")]
+    [Range(0f, 1f)] public float idleTurnForwardThrottle = 0.65f;
+
+    [Tooltip("Tốc độ làm mượt lệnh động cơ.")]
+    public float commandResponseSpeed = 8f;
+
+    [Tooltip("Ngưỡng chống rung input.")]
+    [Range(0f, 0.2f)] public float inputDeadZone = 0.05f;
 
     [Header("Speed / Efficiency")]
     public AnimationCurve speedEfficiencyCurve = AnimationCurve.EaseInOut(0f, 1f, 1f, 0f);
     public float axialFlowInfluence = 0.05f;
 
     [Header("Wave Heading Effect")]
-    [Tooltip("Ngưỡng dot để coi là thuận/ngược sóng rõ rệt.")]
     [Range(0f, 1f)] public float headFollowingThreshold = 0.7f;
-
-    [Tooltip("Giảm thrust tối đa khi đâm ngược sóng mạnh.")]
     [Range(0f, 1f)] public float maxHeadSeaThrustPenalty = 0.35f;
-
-    [Tooltip("Giảm thrust nhẹ khi đi ngang sóng.")]
     [Range(0f, 1f)] public float maxBeamSeaThrustPenalty = 0.1f;
-
-    [Tooltip("Thưởng thrust nhẹ khi thuận sóng.")]
     [Range(0f, 0.5f)] public float maxFollowingSeaThrustBoost = 0.08f;
 
     [Header("Debug")]
@@ -96,6 +105,9 @@ public class USVEngine : MonoBehaviour, IShutdownable
     private float _followingSeaFactor = 0f;
     private WaveRelativeHeading _waveRelativeHeading = WaveRelativeHeading.QuarteringSea;
 
+    private float _leftCommand;
+    private float _rightCommand;
+
     private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
@@ -104,13 +116,19 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
     private void Update()
     {
-        float throttle = -Input.GetAxis("Vertical");
-        float steer = Input.GetAxis("Horizontal");
+        float rawThrottle = Input.GetAxis("Vertical");   // W = +1, S = -1
+        float rawSteer = Input.GetAxis("Horizontal");    // A = -1, D = +1
 
-        steer *= -1f;
+        float throttle = ApplyDeadZone(rawThrottle);
+        float steer = ApplyDeadZone(rawSteer);
 
-        leftEngine.throttleInput = Mathf.Clamp(throttle + steer, -1f, 1f);
-        rightEngine.throttleInput = Mathf.Clamp(throttle - steer, -1f, 1f);
+        ComputeEngineCommands(throttle, steer, out float targetLeft, out float targetRight);
+
+        _leftCommand = Mathf.MoveTowards(_leftCommand, targetLeft, commandResponseSpeed * Time.deltaTime);
+        _rightCommand = Mathf.MoveTowards(_rightCommand, targetRight, commandResponseSpeed * Time.deltaTime);
+
+        leftEngine.throttleInput = _leftCommand;
+        rightEngine.throttleInput = _rightCommand;
 
         UpdateWaveHeadingState();
 
@@ -127,13 +145,113 @@ public class USVEngine : MonoBehaviour, IShutdownable
         UpdateEngine(rightEngine);
     }
 
+    private float ApplyDeadZone(float value)
+    {
+        return Mathf.Abs(value) < inputDeadZone ? 0f : Mathf.Clamp(value, -1f, 1f);
+    }
+
+    /// <summary>
+    /// Input người chơi:
+    /// W = throttle dương
+    /// S = throttle âm
+    ///
+    /// Nội bộ động cơ:
+    /// âm = tiến
+    /// dương = lùi
+    /// </summary>
+    private void ComputeEngineCommands(float throttle, float steer, out float left, out float right)
+    {
+        left = 0f;
+        right = 0f;
+
+        bool hasThrottle = Mathf.Abs(throttle) > 0.001f;
+        bool hasSteer = Mathf.Abs(steer) > 0.001f;
+
+        if (hasThrottle)
+        {
+            if (throttle > 0f)
+            {
+                // Tiến
+                float baseForward = -throttle;
+
+                if (steer < 0f) // A = quay trái => máy phải mạnh hơn
+                {
+                    left = baseForward * (1f - forwardSteerStrength);
+                    right = baseForward;
+                }
+                else if (steer > 0f) // D = quay phải => máy trái mạnh hơn
+                {
+                    left = baseForward;
+                    right = baseForward * (1f - forwardSteerStrength);
+                }
+                else
+                {
+                    left = baseForward;
+                    right = baseForward;
+                }
+
+                left = Mathf.Clamp(left, -1f, 0f);
+                right = Mathf.Clamp(right, -1f, 0f);
+            }
+            else
+            {
+                // Lùi
+                float baseReverse = -throttle;
+
+                if (steer < 0f) // quay trái khi lùi
+                {
+                    left = baseReverse * (1f - reverseSteerStrength);
+                    right = baseReverse;
+                }
+                else if (steer > 0f) // quay phải khi lùi
+                {
+                    left = baseReverse;
+                    right = baseReverse * (1f - reverseSteerStrength);
+                }
+                else
+                {
+                    left = baseReverse;
+                    right = baseReverse;
+                }
+
+                left = Mathf.Clamp(left, 0f, 1f);
+                right = Mathf.Clamp(right, 0f, 1f);
+            }
+        }
+        else if (hasSteer)
+        {
+            // Chỉ bấm A/D:
+            // 1 bên đẩy mạnh, 1 bên gần như không đẩy để tàu quay rõ
+            float strongSide = -idleTurnForwardThrottle; // tiến
+            float weakSide = 0f;
+
+            if (steer < 0f) // A = quay trái => máy phải mạnh hơn
+            {
+                left = weakSide;
+                right = strongSide;
+            }
+            else // D = quay phải => máy trái mạnh hơn
+            {
+                left = strongSide;
+                right = weakSide;
+            }
+
+            left = Mathf.Clamp(left, -1f, 0f);
+            right = Mathf.Clamp(right, -1f, 0f);
+        }
+        else
+        {
+            left = 0f;
+            right = 0f;
+        }
+    }
+
     private void UpdateWaveHeadingState()
     {
         if (OceanRenderer.Instance != null)
         {
             float angleDeg = OceanRenderer.Instance.WindDirectionAngle;
             float angleRad = angleDeg * Mathf.Deg2Rad;
-
             _waveDirection = new Vector3(Mathf.Cos(angleRad), 0f, Mathf.Sin(angleRad)).normalized;
         }
 
@@ -154,21 +272,13 @@ public class USVEngine : MonoBehaviour, IShutdownable
         _followingSeaFactor = Mathf.Clamp01((_followingSeaFactor - 0.5f) * 2f);
 
         if (_waveAlignmentDot >= headFollowingThreshold)
-        {
             _waveRelativeHeading = WaveRelativeHeading.FollowingSea;
-        }
         else if (_waveAlignmentDot <= -headFollowingThreshold)
-        {
             _waveRelativeHeading = WaveRelativeHeading.HeadSea;
-        }
         else if (Mathf.Abs(_waveAlignmentDot) <= (1f - headFollowingThreshold))
-        {
             _waveRelativeHeading = WaveRelativeHeading.BeamSea;
-        }
         else
-        {
             _waveRelativeHeading = WaveRelativeHeading.QuarteringSea;
-        }
 
         if (drawWaveHeadingDebug)
         {
@@ -199,19 +309,13 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
         heightHelper.Init(pos, minSpatialLength);
         if (heightHelper.Sample(out float waterHeight))
-        {
             engine.waterHeight = waterHeight;
-        }
 
         flowHelper.Init(pos, minSpatialLength);
         if (flowHelper.Sample(out Vector2 surfaceFlow))
-        {
             engine.waterFlow = new Vector3(surfaceFlow.x, 0f, surfaceFlow.y);
-        }
         else
-        {
             engine.waterFlow = Vector3.zero;
-        }
 
         engine.submergence = engine.waterHeight - pos.y;
         engine.isSubmerged = engine.submergence > 0f;
@@ -240,9 +344,8 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
     private void UpdateEngine(Engine engine)
     {
-        if (engine == null) return;
-        if (!engine.isOn) return;
-        if (engine.thrustPoint == null) return;
+        if (engine == null || !engine.isOn || engine.thrustPoint == null)
+            return;
 
         float absInput = Mathf.Abs(engine.throttleInput);
 
@@ -291,6 +394,7 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
         float thrust = thrustFactor * engine.maxThrust;
 
+        // Lùi yếu hơn tiến
         if (engine.throttleInput > 0f)
             thrust *= engine.reverseCoefficient;
 
@@ -327,21 +431,17 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
     private void UpdatePropeller(Engine engine)
     {
-        if (engine == null) return;
-        if (engine.propeller == null) return;
+        if (engine == null || engine.propeller == null)
+            return;
 
         float visualRPM = engine.currentRPM;
 
         if (!engine.isSubmerged)
-        {
             visualRPM *= 1.1f;
-        }
 
         float direction = 0f;
         if (Mathf.Abs(engine.throttleInput) > 0.001f)
-        {
             direction = -Mathf.Sign(engine.throttleInput);
-        }
 
         float rotationSpeed = visualRPM * engine.propellerRpmRatio * direction * Time.deltaTime;
         engine.propeller.Rotate(Vector3.right * rotationSpeed, Space.Self);
@@ -361,6 +461,10 @@ public class USVEngine : MonoBehaviour, IShutdownable
     {
         ShutdownEngine(leftEngine);
         ShutdownEngine(rightEngine);
+
+        _leftCommand = 0f;
+        _rightCommand = 0f;
+
         enabled = false;
     }
 
