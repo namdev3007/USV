@@ -7721,7 +7721,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!23 &862747173734281539
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -9287,20 +9287,6 @@ Transform:
   - {fileID: 2098206507}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -180, z: 0}
---- !u!114 &3769725347547600033
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3769725347547600034}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d8fb59e5026f56f4395a521cb22cfef3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _springConstant: 10000
-  _springConstantRotational: 10000000
 --- !u!1 &3769725347547600034
 GameObject:
   m_ObjectHideFlags: 0
@@ -9311,14 +9297,10 @@ GameObject:
   m_Component:
   - component: {fileID: 3766505835542640724}
   - component: {fileID: 3874185874574572826}
-  - component: {fileID: 3874185874574572830}
   - component: {fileID: 3789289429361141354}
-  - component: {fileID: 3769725347547600033}
-  - component: {fileID: 3874185874574572829}
   - component: {fileID: 3874185874574572828}
   - component: {fileID: 3874185874574572827}
   - component: {fileID: 3874185874574572831}
-  - component: {fileID: 3874185874574572833}
   - component: {fileID: 3874185874574572832}
   m_Layer: 0
   m_Name: USV
@@ -9343,7 +9325,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &3772542977432113770
 Transform:
   m_ObjectHideFlags: 0
@@ -9519,7 +9501,7 @@ MonoBehaviour:
   debrisExplosion: {fileID: 919132148977756275}
   explosionPoint: {fileID: 1283034588}
   explosionVfxPrefab: {fileID: 9070521256639635380, guid: bdd1c9c4cc0b76f4c9c8cd1accfdbdf5, type: 3}
-  explosionSfx: {fileID: 0}
+  explosionSfx: {fileID: 8300000, guid: a7f50e54fcc3c974989acbbb48412de5, type: 3}
   explosionVolume: 1
   behavioursToDisable: []
   collidersToDisable: []
@@ -9537,173 +9519,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   targetTag: Ship
---- !u!114 &3874185874574572829
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3769725347547600034}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c8fb86bd5ae205c4aaaf34295968fdb3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  leftEngine:
-    name: right
-    isOn: 1
-    minRPM: 800
-    maxRPM: 5000
-    spinUpTime: 0.4
-    spinDownTime: 0.25
-    maxThrust: 6000
-    reverseCoefficient: 0.5
-    maxSpeed: 16.7
-    thrustCurve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      - serializedVersion: 3
-        time: 1
-        value: 1
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    thrustPoint: {fileID: 1415285461}
-    propellerCheckPoint: {fileID: 0}
-    propeller: {fileID: 1965502730536615145}
-    propellerRpmRatio: 0.1
-    fullSubmergenceDepth: 0.25
-    ventilationMinFactor: 0
-    currentRPM: 0
-    throttleInput: 0
-    currentThrust: 0
-    waterHeight: 0
-    submergence: 0
-    submergenceFactor: 0
-    isSubmerged: 0
-    waterFlow: {x: 0, y: 0, z: 0}
-    relativeVelocityToWater: {x: 0, y: 0, z: 0}
-  rightEngine:
-    name: left
-    isOn: 1
-    minRPM: 800
-    maxRPM: 5000
-    spinUpTime: 0.4
-    spinDownTime: 0.25
-    maxThrust: 6000
-    reverseCoefficient: 0.5
-    maxSpeed: 16.7
-    thrustCurve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      - serializedVersion: 3
-        time: 1
-        value: 1
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    thrustPoint: {fileID: 1785368481}
-    propellerCheckPoint: {fileID: 0}
-    propeller: {fileID: 774926823}
-    propellerRpmRatio: 0.1
-    fullSubmergenceDepth: 0.25
-    ventilationMinFactor: 0
-    currentRPM: 0
-    throttleInput: 0
-    currentThrust: 0
-    waterHeight: 0
-    submergence: 0
-    submergenceFactor: 0
-    isSubmerged: 0
-    waterFlow: {x: 0, y: 0, z: 0}
-    relativeVelocityToWater: {x: 0, y: 0, z: 0}
-  waterAngularDamping: 2
-  minSpatialLength: 1.5
-  speedEfficiencyCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  axialFlowInfluence: 0.05
-  headFollowingThreshold: 0.7
-  maxHeadSeaThrustPenalty: 0.35
-  maxBeamSeaThrustPenalty: 0.1
-  maxFollowingSeaThrustBoost: 0.08
-  drawThrustGizmos: 1
-  drawWaterDebug: 1
-  drawWaveHeadingDebug: 1
---- !u!136 &3874185874574572830
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3769725347547600034}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.7588155
-  m_Height: 5.9233336
-  m_Direction: 2
-  m_Center: {x: 0.022573113, y: 0.49435937, z: -2.5717125}
 --- !u!114 &3874185874574572831
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9743,115 +9558,80 @@ MonoBehaviour:
   m_GameObject: {fileID: 3769725347547600034}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 83394e9bc499914468fe9c3a62e9a87e, type: 3}
+  m_Script: {fileID: 11500000, guid: c3f94334ec7ad7e47b72d221be52f560, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  usvEngine: {fileID: 3874185874574572829}
-  audioSource: {fileID: 3874185874574572833}
-  engineClip: {fileID: 8300000, guid: b8cc9803a8aa40a418d7ae84c1e762b8, type: 3}
-  idleVolume: 0.2
-  maxVolume: 1
-  idlePitch: 0.8
-  maxPitch: 1.3
-  volumeLerpSpeed: 5
-  pitchLerpSpeed: 5
---- !u!82 &3874185874574572833
-AudioSource:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3769725347547600034}
-  m_Enabled: 1
-  serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 0}
-  m_PlayOnAwake: 1
-  m_Volume: 1
-  m_Pitch: 1
-  Loop: 0
-  Mute: 0
-  Spatialize: 0
-  SpatializePostEffects: 0
-  Priority: 128
-  DopplerLevel: 1
-  MinDistance: 1
-  MaxDistance: 500
-  Pan2D: 0
-  rolloffMode: 0
-  BypassEffects: 0
-  BypassListenerEffects: 0
-  BypassReverbZones: 0
-  rolloffCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 1
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  panLevelCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  spreadCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  reverbZoneMixCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
+  targetRigidbody: {fileID: 3789289429361141354}
+  inputSource:
+    controlMode: 0
+    throttleAxis: Vertical
+    steeringAxis: Horizontal
+    leftEngineAxis: LeftEngine
+    rightEngineAxis: RightEngine
+    invertThrottle: 0
+    invertSteering: 0
+    invertLeftEngine: 0
+    invertRightEngine: 0
+    deadZone: 0.05
+  mixer:
+    controlMode: 0
+    steeringSensitivity: 1
+    clampOutput: 1
+    allowInnerEngineReverseForPivot: 0
+    pivotReverseStrength: 0.35
+  leftEngine:
+    engineName: Left Engine
+    thrustPoint: {fileID: 1415285461}
+    localThrustDirection: {x: 0, y: 0, z: 1}
+    maxForwardThrust: 4000
+    reverseThrustCoefficient: 0.5
+    useWaveHeadingEffect: 1
+    throttleResponseTime: 0.25
+    propellerTransform: {fileID: 0}
+    propellerRpmVisual: 1500
+    invertPropellerRotation: 0
+    currentThrottle: 0
+    throttleVelocity: 0
+  rightEngine:
+    engineName: Right Engine
+    thrustPoint: {fileID: 1785368481}
+    localThrustDirection: {x: 0, y: 0, z: 1}
+    maxForwardThrust: 4000
+    reverseThrustCoefficient: 0.5
+    useWaveHeadingEffect: 1
+    throttleResponseTime: 0.25
+    propellerTransform: {fileID: 0}
+    propellerRpmVisual: 1500
+    invertPropellerRotation: 0
+    currentThrottle: 0
+    throttleVelocity: 0
+  enableWaveHeadingEffect: 1
+  waveHeadingSettings:
+    headFollowingThreshold: 0.7
+    maxHeadSeaThrustPenalty: 0.35
+    maxBeamSeaThrustPenalty: 0.1
+    maxFollowingSeaThrustBoost: 0.08
+    drawWaveHeadingDebug: 1
+  stabilizeRoll: 0
+  stabilizePitch: 0
+  maxStabilizationAngle: 20
+  rollStabilizationTorque: 3000
+  pitchStabilizationTorque: 2000
+  drawGizmos: 1
+  debugGamepadInput: 1
+  debugEveryFrame: 0
+  debugPrintInterval: 0.2
+  currentInput:
+    throttle: 0
+    steering: 0
+    leftThrottle: 0
+    rightThrottle: 0
+  currentControlState: Idle
+  leftCommand: 0
+  rightCommand: 0
+  currentWaveRelativeHeading: 0
+  currentWaveAlignmentDot: 0
+  currentWaveThrustMultiplier: 1
 --- !u!23 &3888635558595010791
 MeshRenderer:
   m_ObjectHideFlags: 0

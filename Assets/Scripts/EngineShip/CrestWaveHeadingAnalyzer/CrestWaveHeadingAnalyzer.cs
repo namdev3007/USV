@@ -16,15 +16,29 @@ namespace CustomTwinEngineShip
         [Header("Debug")]
         public bool drawWaveHeadingDebug = true;
 
-        private readonly Transform _shipTransform;
+        [System.NonSerialized]
+        private Transform _shipTransform;
 
-        public CrestWaveHeadingAnalyzer(Transform shipTransform)
+        public void Initialize(Transform shipTransform)
         {
             _shipTransform = shipTransform;
         }
 
         public WaveHeadingData Analyze()
         {
+            if (_shipTransform == null)
+            {
+                return new WaveHeadingData(
+                    Vector3.forward,
+                    0f,
+                    0f,
+                    0f,
+                    0f,
+                    1f,
+                    WaveRelativeHeading.QuarteringSea
+                );
+            }
+
             Vector3 waveDirection = Vector3.forward;
 
             if (OceanRenderer.Instance != null)

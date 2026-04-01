@@ -32,6 +32,15 @@ namespace CustomTwinEngineShip
 
         [Header("Debug")]
         public bool drawGizmos = true;
+
+        [Header("Input Debug")]
+        public bool debugGamepadInput = true;
+        public bool debugEveryFrame = false;
+        [Range(0.01f, 1f)] public float debugPrintInterval = 0.2f;
+
+        [SerializeField] private ShipInputData currentInput;
+        [SerializeField] private string currentControlState = "Idle";
+
         public float leftCommand;
         public float rightCommand;
         public WaveRelativeHeading currentWaveRelativeHeading;
@@ -41,6 +50,7 @@ namespace CustomTwinEngineShip
         private RigidbodyTwinEngineMotorDriver _motorDriver;
         private IWaveHeadingAnalyzer _waveHeadingAnalyzer;
         private WaveHeadingData _waveHeadingData;
+        private float _lastDebugPrintTime;
 
         private void Reset()
         {
@@ -56,10 +66,11 @@ namespace CustomTwinEngineShip
 
             if (waveHeadingSettings == null)
             {
-                waveHeadingSettings = new CrestWaveHeadingAnalyzer(transform);
+                waveHeadingSettings = new CrestWaveHeadingAnalyzer();
             }
 
-            _waveHeadingAnalyzer = waveHeadingSettings ?? new CrestWaveHeadingAnalyzer(transform);
+            waveHeadingSettings.Initialize(transform);
+            _waveHeadingAnalyzer = waveHeadingSettings;
         }
 
         private void Update()
@@ -85,11 +96,14 @@ namespace CustomTwinEngineShip
         {
             if (targetRigidbody == null) return;
 
-            ShipInputData input = inputSource.ReadInput();
-            Vector2 output = mixer.Mix(input);
+            currentInput = inputSource.ReadInput();
+            Vector2 output = mixer.Mix(currentInput);
 
             leftCommand = output.x;
             rightCommand = output.y;
+
+            UpdateControlState(currentInput, leftCommand, rightCommand);
+            DebugGamepadInput(currentInput, leftCommand, rightCommand);
 
             float dt = Time.fixedDeltaTime;
             float waveMultiplier = enableWaveHeadingEffect ? currentWaveThrustMultiplier : 1f;
@@ -98,6 +112,62 @@ namespace CustomTwinEngineShip
             _motorDriver.Apply(targetRigidbody, rightEngine, rightCommand, waveMultiplier, dt);
 
             ApplyStabilization();
+        }
+
+        private void UpdateControlState(ShipInputData input, float left, float right)
+        {
+            const float eps = 0.05f;
+
+            if (Mathf.Abs(left) < eps && Mathf.Abs(right) < eps)
+            {
+                currentControlState = "Idle";
+                return;
+            }
+
+            if (left > eps && right > eps)
+            {
+                currentControlState = "Forward";
+                return;
+            }
+
+            if (left < -eps && right < -eps)
+            {
+                currentControlState = "Reverse";
+                return;
+            }
+
+            if (left > right)
+            {
+                currentControlState = "Turning Right";
+                return;
+            }
+
+            if (right > left)
+            {
+                currentControlState = "Turning Left";
+                return;
+            }
+
+            currentControlState = "Mixed";
+        }
+
+        private void DebugGamepadInput(ShipInputData input, float left, float right)
+        {
+            if (!debugGamepadInput) return;
+
+            bool shouldPrint = debugEveryFrame || Time.time - _lastDebugPrintTime >= debugPrintInterval;
+            if (!shouldPrint) return;
+
+            _lastDebugPrintTime = Time.time;
+
+            Debug.Log(
+                $"[TwinEngineInput] " +
+                $"Mode={inputSource.controlMode} | " +
+                $"Throttle={input.throttle:F2} | Steering={input.steering:F2} | " +
+                $"LeftRaw={input.leftThrottle:F2} | RightRaw={input.rightThrottle:F2} | " +
+                $"LeftCmd={left:F2} | RightCmd={right:F2} | " +
+                $"State={currentControlState}"
+            );
         }
 
         private void ApplyStabilization()
@@ -146,6 +216,16 @@ namespace CustomTwinEngineShip
         public float GetWaveThrustMultiplier()
         {
             return currentWaveThrustMultiplier;
+        }
+
+        public ShipInputData GetCurrentInput()
+        {
+            return currentInput;
+        }
+
+        public string GetCurrentControlState()
+        {
+            return currentControlState;
         }
 
         private void OnDrawGizmos()
