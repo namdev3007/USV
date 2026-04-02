@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Crest;
+using UnityEngine.InputSystem;
 using Range = UnityEngine.RangeAttribute;
 
 [RequireComponent(typeof(Rigidbody))]
@@ -55,12 +56,21 @@ public class USVEngine : MonoBehaviour, IShutdownable
     public Engine leftEngine;
     public Engine rightEngine;
 
-    [Header("Input - Legacy Input Manager")]
-    public string throttleAxisName = "LeftStickY";
-    public string steerAxisName = "RightStickX";
+    [Header("Input - New Input System")]
+    public InputActionReference throttleAction;   // ví dụ: USV/Throttle
+    public InputActionReference steerAction;      // ví dụ: USV/Steer hoặc USV/Yaw
+
     public bool invertThrottleAxis = false;
     public bool invertSteerAxis = false;
+
+    [Tooltip("Bật nếu trục ga của tay điều khiển trả về 0..1 thay vì -1..1")]
+    public bool throttleIsZeroToOne = false;
+
+    [Tooltip("Cho phép fallback sang keyboard từ Input System action khác")]
     public bool allowKeyboardFallback = false;
+    public InputActionReference keyboardThrottleAction; // optional
+    public InputActionReference keyboardSteerAction;    // optional
+
     public bool debugInput = false;
     public float debugLogInterval = 0.15f;
 
@@ -139,6 +149,22 @@ public class USVEngine : MonoBehaviour, IShutdownable
         _rb.angularDamping = waterAngularDamping;
     }
 
+    private void OnEnable()
+    {
+        throttleAction?.action?.Enable();
+        steerAction?.action?.Enable();
+        keyboardThrottleAction?.action?.Enable();
+        keyboardSteerAction?.action?.Enable();
+    }
+
+    private void OnDisable()
+    {
+        throttleAction?.action?.Disable();
+        steerAction?.action?.Disable();
+        keyboardThrottleAction?.action?.Disable();
+        keyboardSteerAction?.action?.Disable();
+    }
+
     private void Update()
     {
         ReadInput(out float throttle, out float steer);
@@ -173,19 +199,22 @@ public class USVEngine : MonoBehaviour, IShutdownable
         float rawThrottle = 0f;
         float rawSteer = 0f;
 
-        if (!string.IsNullOrEmpty(throttleAxisName))
-            rawThrottle = Input.GetAxis(throttleAxisName);
+        if (throttleAction != null && throttleAction.action != null)
+            rawThrottle = throttleAction.action.ReadValue<float>();
 
-        if (!string.IsNullOrEmpty(steerAxisName))
-            rawSteer = Input.GetAxis(steerAxisName);
+        if (steerAction != null && steerAction.action != null)
+            rawSteer = steerAction.action.ReadValue<float>();
+
+        if (throttleIsZeroToOne)
+            rawThrottle = rawThrottle * 2f - 1f;
 
         if (allowKeyboardFallback)
         {
-            if (Mathf.Abs(rawThrottle) < 0.001f)
-                rawThrottle = Input.GetAxis("Vertical");
+            if (Mathf.Abs(rawThrottle) < 0.001f && keyboardThrottleAction != null && keyboardThrottleAction.action != null)
+                rawThrottle = keyboardThrottleAction.action.ReadValue<float>();
 
-            if (Mathf.Abs(rawSteer) < 0.001f)
-                rawSteer = Input.GetAxis("Horizontal");
+            if (Mathf.Abs(rawSteer) < 0.001f && keyboardSteerAction != null && keyboardSteerAction.action != null)
+                rawSteer = keyboardSteerAction.action.ReadValue<float>();
         }
 
         if (invertThrottleAxis)
@@ -231,12 +260,12 @@ public class USVEngine : MonoBehaviour, IShutdownable
                     innerScale = Mathf.Lerp(innerScale, 0f, pivotBlend);
                 }
 
-                if (steer < 0f) // quay trái => máy phải mạnh hơn
+                if (steer < 0f)
                 {
                     left = baseForward * innerScale;
                     right = baseForward;
                 }
-                else if (steer > 0f) // quay phải => máy trái mạnh hơn
+                else if (steer > 0f)
                 {
                     left = baseForward;
                     right = baseForward * innerScale;
@@ -262,12 +291,12 @@ public class USVEngine : MonoBehaviour, IShutdownable
                     innerScale = Mathf.Lerp(innerScale, 0f, pivotBlend);
                 }
 
-                if (steer < 0f) // quay trái khi lùi
+                if (steer < 0f)
                 {
                     left = baseReverse * innerScale;
                     right = baseReverse;
                 }
-                else if (steer > 0f) // quay phải khi lùi
+                else if (steer > 0f)
                 {
                     left = baseReverse;
                     right = baseReverse * innerScale;
@@ -292,12 +321,12 @@ public class USVEngine : MonoBehaviour, IShutdownable
             float strongSide = -idleTurn;
             float weakSide = 0f;
 
-            if (steer < 0f) // quay trái
+            if (steer < 0f)
             {
                 left = weakSide;
                 right = strongSide;
             }
-            else // quay phải
+            else
             {
                 left = strongSide;
                 right = weakSide;
