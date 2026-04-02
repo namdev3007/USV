@@ -55,22 +55,46 @@ public class USVEngine : MonoBehaviour, IShutdownable
     public Engine leftEngine;
     public Engine rightEngine;
 
+    [Header("Input - Legacy Input Manager")]
+    public string throttleAxisName = "LeftStickY";
+    public string steerAxisName = "RightStickX";
+    public bool invertThrottleAxis = false;
+    public bool invertSteerAxis = false;
+    public bool allowKeyboardFallback = false;
+    public bool debugInput = false;
+    public float debugLogInterval = 0.15f;
+
     [Header("General")]
     public float waterAngularDamping = 1.0f;
     public float minSpatialLength = 1.5f;
 
     [Header("Helm / Steering")]
-    [Tooltip("Độ lệch lực khi đang tiến.")]
-    [Range(0f, 1f)] public float forwardSteerStrength = 0.75f;
+    [Tooltip("Độ lệch lực tối đa khi đang tiến.")]
+    [Range(0f, 1f)] public float forwardSteerStrength = 0.92f;
 
-    [Tooltip("Độ lệch lực khi đang lùi.")]
-    [Range(0f, 1f)] public float reverseSteerStrength = 0.45f;
+    [Tooltip("Độ lệch lực tối đa khi đang lùi.")]
+    [Range(0f, 1f)] public float reverseSteerStrength = 0.72f;
 
-    [Tooltip("Lực tiến khi chỉ bấm A/D.")]
-    [Range(0f, 1f)] public float idleTurnForwardThrottle = 0.65f;
+    [Tooltip("Lực tiến để quay tại chỗ khi chỉ bẻ lái mà không ga.")]
+    [Range(0f, 1f)] public float idleTurnForwardThrottle = 0.9f;
+
+    [Tooltip("Độ cong của input lái. >1 = bẻ mạnh mới quay gắt, <1 = nhạy sớm hơn.")]
+    [Range(0.5f, 3f)] public float steerExponent = 0.75f;
+
+    [Tooltip("Hệ số tăng thêm độ nhạy quay khi đang tiến.")]
+    [Range(0.5f, 2f)] public float forwardTurnBoost = 1.2f;
+
+    [Tooltip("Hệ số tăng thêm độ nhạy quay khi đang lùi.")]
+    [Range(0.5f, 2f)] public float reverseTurnBoost = 1.15f;
+
+    [Tooltip("Cho phép quay kiểu split-thrust khi bẻ lái mạnh: một máy mạnh hơn, máy kia gần như nghỉ.")]
+    public bool aggressivePivotTurn = true;
+
+    [Tooltip("Ngưỡng bắt đầu pivot-turn khi đang có ga.")]
+    [Range(0f, 1f)] public float pivotTurnThreshold = 0.7f;
 
     [Tooltip("Tốc độ làm mượt lệnh động cơ.")]
-    public float commandResponseSpeed = 8f;
+    public float commandResponseSpeed = 12f;
 
     [Tooltip("Ngưỡng chống rung input.")]
     [Range(0f, 0.2f)] public float inputDeadZone = 0.05f;
@@ -107,6 +131,7 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
     private float _leftCommand;
     private float _rightCommand;
+    private float _nextDebugLogTime;
 
     private void Awake()
     {
@@ -116,19 +141,15 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
     private void Update()
     {
-        float rawThrottle = Input.GetAxis("Vertical");   // W = +1, S = -1
-        float rawSteer = Input.GetAxis("Horizontal");    // A = -1, D = +1
-
-        float throttle = ApplyDeadZone(rawThrottle);
-        float steer = ApplyDeadZone(rawSteer);
+        ReadInput(out float throttle, out float steer);
 
         ComputeEngineCommands(throttle, steer, out float targetLeft, out float targetRight);
 
         _leftCommand = Mathf.MoveTowards(_leftCommand, targetLeft, commandResponseSpeed * Time.deltaTime);
         _rightCommand = Mathf.MoveTowards(_rightCommand, targetRight, commandResponseSpeed * Time.deltaTime);
 
-        leftEngine.throttleInput = _leftCommand;
-        rightEngine.throttleInput = _rightCommand;
+        if (leftEngine != null) leftEngine.throttleInput = _leftCommand;
+        if (rightEngine != null) rightEngine.throttleInput = _rightCommand;
 
         UpdateWaveHeadingState();
 
@@ -137,6 +158,8 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
         UpdatePropeller(leftEngine);
         UpdatePropeller(rightEngine);
+
+        DebugInputState(throttle, steer, targetLeft, targetRight);
     }
 
     private void FixedUpdate()
@@ -145,44 +168,78 @@ public class USVEngine : MonoBehaviour, IShutdownable
         UpdateEngine(rightEngine);
     }
 
+    private void ReadInput(out float throttle, out float steer)
+    {
+        float rawThrottle = 0f;
+        float rawSteer = 0f;
+
+        if (!string.IsNullOrEmpty(throttleAxisName))
+            rawThrottle = Input.GetAxis(throttleAxisName);
+
+        if (!string.IsNullOrEmpty(steerAxisName))
+            rawSteer = Input.GetAxis(steerAxisName);
+
+        if (allowKeyboardFallback)
+        {
+            if (Mathf.Abs(rawThrottle) < 0.001f)
+                rawThrottle = Input.GetAxis("Vertical");
+
+            if (Mathf.Abs(rawSteer) < 0.001f)
+                rawSteer = Input.GetAxis("Horizontal");
+        }
+
+        if (invertThrottleAxis)
+            rawThrottle = -rawThrottle;
+
+        if (invertSteerAxis)
+            rawSteer = -rawSteer;
+
+        throttle = ApplyDeadZone(rawThrottle);
+        steer = ApplyDeadZone(rawSteer);
+    }
+
     private float ApplyDeadZone(float value)
     {
         return Mathf.Abs(value) < inputDeadZone ? 0f : Mathf.Clamp(value, -1f, 1f);
     }
 
-    /// <summary>
-    /// Input người chơi:
-    /// W = throttle dương
-    /// S = throttle âm
-    ///
-    /// Nội bộ động cơ:
-    /// âm = tiến
-    /// dương = lùi
-    /// </summary>
     private void ComputeEngineCommands(float throttle, float steer, out float left, out float right)
     {
         left = 0f;
         right = 0f;
 
-        bool hasThrottle = Mathf.Abs(throttle) > 0.001f;
-        bool hasSteer = Mathf.Abs(steer) > 0.001f;
+        float throttleAbs = Mathf.Abs(throttle);
+        float steerAbsRaw = Mathf.Abs(steer);
+        float steerAbs = Mathf.Pow(steerAbsRaw, steerExponent);
+
+        bool hasThrottle = throttleAbs > 0.001f;
+        bool hasSteer = steerAbsRaw > 0.001f;
 
         if (hasThrottle)
         {
-            if (throttle > 0f)
-            {
-                // Tiến
-                float baseForward = -throttle;
+            bool isForward = throttle > 0f;
 
-                if (steer < 0f) // A = quay trái => máy phải mạnh hơn
+            if (isForward)
+            {
+                float baseForward = -throttleAbs;
+                float steerPower = Mathf.Clamp01(forwardSteerStrength * steerAbs * forwardTurnBoost);
+                float innerScale = Mathf.Clamp01(1f - steerPower);
+
+                if (aggressivePivotTurn && steerAbsRaw >= pivotTurnThreshold)
                 {
-                    left = baseForward * (1f - forwardSteerStrength);
+                    float pivotBlend = Mathf.InverseLerp(pivotTurnThreshold, 1f, steerAbsRaw);
+                    innerScale = Mathf.Lerp(innerScale, 0f, pivotBlend);
+                }
+
+                if (steer < 0f) // quay trái => máy phải mạnh hơn
+                {
+                    left = baseForward * innerScale;
                     right = baseForward;
                 }
-                else if (steer > 0f) // D = quay phải => máy trái mạnh hơn
+                else if (steer > 0f) // quay phải => máy trái mạnh hơn
                 {
                     left = baseForward;
-                    right = baseForward * (1f - forwardSteerStrength);
+                    right = baseForward * innerScale;
                 }
                 else
                 {
@@ -195,18 +252,25 @@ public class USVEngine : MonoBehaviour, IShutdownable
             }
             else
             {
-                // Lùi
-                float baseReverse = -throttle;
+                float baseReverse = throttleAbs;
+                float steerPower = Mathf.Clamp01(reverseSteerStrength * steerAbs * reverseTurnBoost);
+                float innerScale = Mathf.Clamp01(1f - steerPower);
+
+                if (aggressivePivotTurn && steerAbsRaw >= pivotTurnThreshold)
+                {
+                    float pivotBlend = Mathf.InverseLerp(pivotTurnThreshold, 1f, steerAbsRaw);
+                    innerScale = Mathf.Lerp(innerScale, 0f, pivotBlend);
+                }
 
                 if (steer < 0f) // quay trái khi lùi
                 {
-                    left = baseReverse * (1f - reverseSteerStrength);
+                    left = baseReverse * innerScale;
                     right = baseReverse;
                 }
                 else if (steer > 0f) // quay phải khi lùi
                 {
                     left = baseReverse;
-                    right = baseReverse * (1f - reverseSteerStrength);
+                    right = baseReverse * innerScale;
                 }
                 else
                 {
@@ -220,17 +284,20 @@ public class USVEngine : MonoBehaviour, IShutdownable
         }
         else if (hasSteer)
         {
-            // Chỉ bấm A/D:
-            // 1 bên đẩy mạnh, 1 bên gần như không đẩy để tàu quay rõ
-            float strongSide = -idleTurnForwardThrottle; // tiến
+            float idleTurn = idleTurnForwardThrottle * steerAbs;
+
+            if (aggressivePivotTurn && steerAbsRaw >= pivotTurnThreshold)
+                idleTurn = Mathf.Lerp(idleTurn, 1f, Mathf.InverseLerp(pivotTurnThreshold, 1f, steerAbsRaw));
+
+            float strongSide = -idleTurn;
             float weakSide = 0f;
 
-            if (steer < 0f) // A = quay trái => máy phải mạnh hơn
+            if (steer < 0f) // quay trái
             {
                 left = weakSide;
                 right = strongSide;
             }
-            else // D = quay phải => máy trái mạnh hơn
+            else // quay phải
             {
                 left = strongSide;
                 right = weakSide;
@@ -289,10 +356,12 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
     private void UpdateWaterState(Engine engine, SampleHeightHelper heightHelper, SampleFlowHelper flowHelper)
     {
-        if (engine == null) return;
+        if (engine == null)
+            return;
 
         Transform samplePoint = engine.propellerCheckPoint != null ? engine.propellerCheckPoint : engine.thrustPoint;
-        if (samplePoint == null) return;
+        if (samplePoint == null)
+            return;
 
         Vector3 pos = samplePoint.position;
 
@@ -394,7 +463,6 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
         float thrust = thrustFactor * engine.maxThrust;
 
-        // Lùi yếu hơn tiến
         if (engine.throttleInput > 0f)
             thrust *= engine.reverseCoefficient;
 
@@ -447,6 +515,24 @@ public class USVEngine : MonoBehaviour, IShutdownable
         engine.propeller.Rotate(Vector3.right * rotationSpeed, Space.Self);
     }
 
+    private void DebugInputState(float throttle, float steer, float targetLeft, float targetRight)
+    {
+        if (!debugInput)
+            return;
+
+        if (Time.time < _nextDebugLogTime)
+            return;
+
+        _nextDebugLogTime = Time.time + debugLogInterval;
+
+        Debug.Log(
+            $"[USVEngine Input] " +
+            $"Throttle={throttle:F2} | Steer={steer:F2} | " +
+            $"TargetLeft={targetLeft:F2} | TargetRight={targetRight:F2} | " +
+            $"AppliedLeft={_leftCommand:F2} | AppliedRight={_rightCommand:F2}"
+        );
+    }
+
     public WaveRelativeHeading GetWaveRelativeHeading()
     {
         return _waveRelativeHeading;
@@ -470,7 +556,8 @@ public class USVEngine : MonoBehaviour, IShutdownable
 
     private void ShutdownEngine(Engine engine)
     {
-        if (engine == null) return;
+        if (engine == null)
+            return;
 
         engine.throttleInput = 0f;
         engine.currentThrust = 0f;
